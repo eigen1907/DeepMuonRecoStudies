@@ -1,0 +1,16 @@
+[project]
+name = "deepmuonreco-studies-py312"
+version = "0.1.0"
+requires-python = ">=3.12"
+
+dependencies = [
+    "ipykernel",
+    "numpy",
+    "awkward",
+    "uproot",
+    "matplotlib",
+    "pandas",
+    "h5py",
+    "hist",
+    "mplhep",
+]

@@ -1,4 +1,4 @@
-"""Draw the same slide-style plots for two models on one full test H5."""
+"""Draw slide-style plots for one model on the full test H5."""
 
 import argparse
 from collections import defaultdict
@@ -337,12 +337,10 @@ def plot_run(run, test_h5):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--h5", type=Path, default=TEST)
-    parser.add_argument("--models", nargs=2, type=Path, required=True,
-                        metavar=("MODEL_A", "MODEL_B"))
+    parser.add_argument("--model", type=Path, required=True)
     args = parser.parse_args()
     test_h5 = args.h5.resolve()
-    for model in args.models:
-        plot_run(ensure_predictions(model, test_h5), test_h5)
+    plot_run(ensure_predictions(args.model, test_h5), test_h5)
 
 
 if __name__ == "__main__":

@@ -9,10 +9,10 @@ bash runs/plot_run3_dataset.sh
 bash runs/plot_phase2_models.sh
 ```
 
-다른 입력과 모델은 bash 파일의 `--h5`, `--models` 경로를 바꾼다.
+다른 입력과 모델은 bash 파일의 `--h5`, `--model` 경로를 바꾼다.
 
 모델 경로에는 run 디렉터리나 체크포인트 파일을 넣는다. `val.h5`는 입력
-`test.h5`와 같은 디렉터리에서 찾는다. 필요한 점수는 모델별로 자동 추론하며,
+`test.h5`와 같은 디렉터리에서 찾는다. 필요한 점수는 자동 추론하며,
 검증셋에서 95.0%, 99.0%, 99.9% 기준을 계산한다. 결과는 `plots/dataset/`과
 `plots/<model-run>/`에 저장된다. 입력 H5가 바뀌면 해당 run의 `predictions/`
 점수 파일을 갱신한다.

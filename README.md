@@ -20,5 +20,7 @@ bash runs/plot_phase2_models.sh
 기본 H5는 Phase 2 전체 테스트셋이다. 데이터셋·추론·모델 플롯은 각각
 128·256·64개 이벤트씩 읽는다. `track_is_good_track`에는 `pT > 0.5`,
 `p > 2.5`, `|eta| < 3`이 이미 포함돼 있다. 각 PNG에는 Axes가 하나만 있다.
+효율·거부율 오차막대는 68.3% Clopper–Pearson, 분포 히스토그램 오차막대는
+Poisson(Garwood) 구간이다.
 
 Run 3 H5를 지정하면 슬라이드의 시뮬레이션과 다른 Muon0 실데이터를 그린다.

@@ -8,14 +8,16 @@ from pathlib import Path
 import subprocess
 
 import h5py
+import hist
+from hist.intervals import ratio_uncertainty
 import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
 import mplhep as hep
 import numpy as np
 
+from plot_style import color_scale
 from study_h5 import iter_scored_chunks
 
 
@@ -119,8 +121,7 @@ def ensure_predictions(model, test_h5):
 
 
 def save(ax, name, output, com):
-    hep.cms.label("Private Work", ax=ax, data=False, com=com,
-                  fontsize=12 if name.endswith("_2d.png") else None)
+    hep.cms.label("Private Work", ax=ax, data=False, com=com, fontsize=24)
     ax.figure.savefig(output / name, dpi=150, bbox_inches="tight")
     plt.close(ax.figure)
     print(output / name)
@@ -175,16 +176,13 @@ def roc_plots(h, labels, output, com, sample):
 
 
 def score_plot(h, output, com, sample):
-    edges = np.linspace(0, 1, 21)
-    centres = (edges[1:] + edges[:-1]) / 2
     _, ax = plt.subplots(figsize=(10, 8))
     for name, label, color in (("signal", "Signal", "#e43d42"),
                                ("background", "Background", "#55aaff")):
-        counts = h["score", name]
-        scale = counts.sum() * np.diff(edges)
-        ax.stairs(counts / scale, edges, color=color, lw=2, label=label)
-        ax.errorbar(centres, counts / scale, yerr=np.sqrt(counts) / scale,
-                    fmt="none", color=color, lw=1)
+        counts = hist.Hist(hist.axis.Regular(20, 0, 1))
+        counts.view()[:] = h["score", name]
+        counts.plot(ax=ax, density=True, yerr=True, histtype="step",
+                    color=color, linewidth=2, label=label)
     ax.set(xlim=(0, 1), ylim=(0, 14.5), xlabel="Score", ylabel="Normalized")
     ax.legend(loc="upper center", title=sample)
     ax.grid(alpha=0.15)
@@ -192,16 +190,12 @@ def score_plot(h, output, com, sample):
 
 
 def binomial_rate(num, den, complement):
-    """One-sigma Wilson interval, including bins with zero successes."""
+    """One-sigma Clopper-Pearson interval for unweighted bin counts."""
     valid = den > 0
     n, d = num[valid], den[valid]
-    p = n / d
-    mid = (p + 0.5 / d) / (1 + 1 / d)
-    half = np.sqrt(p * (1 - p) / d + 0.25 / d**2) / (1 + 1 / d)
-    low, high = np.maximum(0, mid - half), np.minimum(1, mid + half)
     if complement:
-        return valid, 1 - p, np.maximum(0, [high - p, p - low])
-    return valid, p, np.maximum(0, [p - low, high - p])
+        n = d - n
+    return valid, n / d, ratio_uncertainty(n, d, uncertainty_type="efficiency")
 
 
 def pt_plot(h, base, curves, xmax, ylabel, invert, output, name, com, ymin=0):
@@ -223,19 +217,6 @@ def pt_plot(h, base, curves, xmax, ylabel, invert, output, name, com, ymin=0):
     save(ax, name, output, com)
 
 
-def color_scale(ax, cmap, label):
-    """Draw a 0-1 color scale inside the data Axes, without a second Axes."""
-    for i in range(80):
-        ax.add_patch(Rectangle((1.04, i / 80), 0.035, 1 / 80,
-                               transform=ax.transAxes, clip_on=False,
-                               facecolor=cmap(i / 79), edgecolor="none"))
-    for value in (0, 0.5, 1):
-        ax.text(1.09, value, f"{value:.1f}", va="center",
-                transform=ax.transAxes, fontsize=16)
-    ax.text(1.18, 0.5, label, rotation=90, va="center",
-            transform=ax.transAxes, fontsize=17)
-
-
 def map_plot(h, base, selected, xmax, label, output, name, com, invert=False):
     pt_edges = np.linspace(0, xmax, 81)
     eta_edges = np.linspace(-3, 3, 61)
@@ -247,11 +228,11 @@ def map_plot(h, base, selected, xmax, label, output, name, com, invert=False):
     cmap = plt.get_cmap("plasma" if invert or label == "Fake Rate" else "viridis").copy()
     cmap.set_bad("white")
     fig, ax = plt.subplots(figsize=(10, 8))
-    ax.pcolormesh(pt_edges, eta_edges, np.ma.masked_invalid(rate.T),
-                  cmap=cmap, vmin=0, vmax=1, shading="auto")
+    image = ax.pcolormesh(pt_edges, eta_edges, np.ma.masked_invalid(rate.T),
+                          cmap=cmap, vmin=0, vmax=1, shading="auto")
     ax.set(xlim=(0, xmax), ylim=(-3, 3), xlabel=r"Tracker Track $p_T$ [GeV]",
            ylabel=r"Tracker Track $\eta$")
-    color_scale(ax, cmap, label)
+    color_scale(ax, image, label, np.linspace(0, 1, 6))
     fig.subplots_adjust(left=0.12, right=0.76, bottom=0.12, top=0.88)
     save(ax, name, output, com)
 

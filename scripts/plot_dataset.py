@@ -6,7 +6,6 @@ All events are processed by default, reading 128 events at a time.
 
 import argparse
 from pathlib import Path
-import warnings
 
 import h5py
 import hist
@@ -14,9 +13,10 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
 import mplhep as hep
 import numpy as np
+
+from plot_style import color_scale
 
 
 plt.style.use(hep.style.CMS)
@@ -109,16 +109,14 @@ def save_hist(output, items, xlabel, title, com, data, bins=None):
     bins = bins or bins_for(*(values for values, _, _ in items))
     fig, ax = plt.subplots(figsize=(10, 8))
     for values, label, color in items:
-        h = hist.Hist(hist.axis.Regular(*bins), storage=hist.storage.Weight())
+        h = hist.Hist(hist.axis.Regular(*bins))
         h.fill(values)
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", message="Integer weights indicate poissonian data.*")
-            h.plot(ax=ax, density=True, yerr=True, histtype="step", linewidth=2.5,
-                   label=f"{label}\n<N>: {np.mean(values):.1f}", color=color)
+        h.plot(ax=ax, density=True, yerr=True, histtype="step", linewidth=2.5,
+               label=f"{label}\n<N>: {np.mean(values):.1f}", color=color)
     ax.set(xlim=(bins[1], bins[2]), ylim=(0, None), xlabel=xlabel, ylabel="Normalized")
-    hep.cms.label("Private Work", ax=ax, data=data, com=com)
     ax.legend(title=title)
     fig.tight_layout()
+    hep.cms.label("Private Work", ax=ax, data=data, com=com, fontsize=24)
     fig.savefig(output, dpi=150, bbox_inches="tight")
     plt.close(fig)
     print(output)
@@ -136,18 +134,9 @@ def save_map(output, counts, com, kind):
              "truth_matched": "Truth-Matched Track"}[kind]
     ax.set(xlim=(0, 10), ylim=(-3, 3), xlabel=rf"{label} $p_T$ [GeV]",
            ylabel=rf"{label} $\eta$")
-    hep.cms.label("Private Work", ax=ax, data=False, com=com, fontsize=12)
-    # Draw the color scale in this Axes so each saved plot has exactly one Axes.
-    for i in range(80):
-        ax.add_patch(Rectangle((1.04, i / 80), 0.035, 1 / 80,
-                               transform=ax.transAxes, clip_on=False,
-                               facecolor=image.cmap(i / 79), edgecolor="none"))
-    for fraction in (0, 0.5, 1):
-        ax.text(1.09, fraction, f"{fraction * maximum:.2g}", va="center",
-                transform=ax.transAxes, fontsize=16)
-    ax.text(1.18, 0.5, "Normalized", rotation=90, va="center",
-            transform=ax.transAxes, fontsize=17)
     fig.subplots_adjust(left=0.12, right=0.76, bottom=0.12, top=0.88)
+    hep.cms.label("Private Work", ax=ax, data=False, com=com, fontsize=24)
+    color_scale(ax, image, "Normalized")
     fig.savefig(output, dpi=150, bbox_inches="tight")
     plt.close(fig)
     print(output)

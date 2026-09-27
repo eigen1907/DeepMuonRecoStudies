@@ -13,4 +13,5 @@ dependencies = [
     "h5py",
     "hist",
     "mplhep",
+    "scipy>=1.18.1",
 ]

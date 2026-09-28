@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../DeepMuonReco"
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../../DeepMuonReco"
 
 session="sanity-$(date +%y%m%d-%H%M%S)-$$"
 zellij attach -b "$session"

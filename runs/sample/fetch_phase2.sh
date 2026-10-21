@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 studies=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
-export remote=joshin@gate.sscc.uos.ac.kr
+export remote=${DMR_REMOTE:-joshin@gate.sscc.uos.ac.kr}
+export ssh_port=${DMR_SSH_PORT:-22}
 export remote_root=/hdfs/store/mc/Phase2Spring24DIGIRECOMiniAOD/SingleMu_FlatPt-2to100/GEN-SIM-DIGI-RAW-MINIAOD/PU200_Trk1GeV_140X_mcRun4_realistic_v4-v2
 export output="$studies/output/sample/Phase2/MC/singlemu-d110-pu200/raw"
 mkdir -p "$output/logs"
 
 if [[ ${1:-} != worker ]]; then
   zellij attach -b fetch-phase2 2>/dev/null || true
-  zellij --session fetch-phase2 run --cwd "$studies" --name rsync -- bash "$0" worker
+  zellij --session fetch-phase2 run --cwd "$studies" --name rsync -- \
+    env DMR_REMOTE="$remote" DMR_SSH_PORT="$ssh_port" bash "$0" worker
   echo "Download session: zellij attach fetch-phase2 (16 workers)"
   echo "Logs: $output/logs"
   exit
@@ -21,7 +23,7 @@ echo "$$" >"$output/logs/fetch.pid"
 exec >"$output/logs/fetch.log" 2>&1
 set +e
 date -Is
-until ssh -n -o BatchMode=yes -o ConnectTimeout=20 "$remote" \
+until ssh -n -p "$ssh_port" -o BatchMode=yes -o ConnectTimeout=20 "$remote" \
   "set -o pipefail; find '$remote_root' -type f -name '*.root' -printf '%s\\t%p\\n' | sort -n" >"$output/manifest.tsv.tmp"; do
   echo "SSH unavailable; retrying in 60 seconds."
   sleep 60
@@ -36,7 +38,7 @@ awk -F "\t" "{print NR-1; print \$2}" "$output/manifest.tsv" | xargs -d '\n' -r 
     date -Is >"$output/logs/$name.log"
     for attempt in 1 2 3; do
       rsync --times --partial-dir=.rsync-partial --protect-args --info=progress2 \
-        -e "ssh -o BatchMode=yes -o ConnectTimeout=20" \
+        -e "ssh -p $ssh_port -o BatchMode=yes -o ConnectTimeout=20" \
         "$remote:$file" "$output/" >>"$output/logs/$name.log" 2>&1
       status=$?
       (( status == 0 )) && break

@@ -60,6 +60,8 @@ zellij attach fetch-phase2
 저장 위치는 `output/sample/Phase2/MC/singlemu-d110-pu200/raw/`이며,
 원격 파일 목록은 `manifest.tsv`, 진행·완료 상태는 `logs/`에 기록된다.
 `logs/exitcode`가 `0`이면 전체 전송이 성공한 것이다.
+SSH 터널을 사용할 때는 `DMR_REMOTE=joshin@127.0.0.1 DMR_SSH_PORT=22022`
+환경 변수를 실행 명령 앞에 붙인다. 터널을 제공하는 PC는 전송 중 계속 연결되어 있어야 한다.
 
 ```bash
 bash runs/sample/phase2_mc.sh rereco /path/to/digiraw-files.txt

@@ -9,7 +9,7 @@ mkdir -p "$output/logs"
 if [[ ${1:-} != worker ]]; then
   zellij attach -b fetch-phase2 2>/dev/null || true
   zellij --session fetch-phase2 run --cwd "$studies" --name rsync -- bash "$0" worker
-  echo "Download session: zellij attach fetch-phase2 (32 workers)"
+  echo "Download session: zellij attach fetch-phase2 (16 workers)"
   echo "Logs: $output/logs"
   exit
 fi
@@ -27,9 +27,9 @@ until ssh -n -o BatchMode=yes -o ConnectTimeout=20 "$remote" \
   sleep 60
 done
 mv "$output/manifest.tsv.tmp" "$output/manifest.tsv"
-awk -F "\t" "{print NR-1; print \$2}" "$output/manifest.tsv" | xargs -d '\n' -r -n2 -P32 bash -c '
+awk -F "\t" "{print NR-1; print \$2}" "$output/manifest.tsv" | xargs -d '\n' -r -n2 -P16 bash -c '
     # Stagger SSH handshakes to avoid connection rejections seen during a burst.
-    sleep "$(( $1 % 32 ))"
+    sleep "$(( $1 % 16 ))"
     file=$2
     name=${file##*/}
     rm -f "$output/logs/$name.exitcode"

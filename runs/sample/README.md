@@ -56,7 +56,7 @@ bash runs/sample/fetch_phase2.sh
 zellij attach fetch-phase2
 ```
 
-32개 `rsync`가 백그라운드에서 실행된다. 같은 명령으로 중단된 전송을 재개한다.
+16개 `rsync`가 백그라운드에서 실행된다. 같은 명령으로 중단된 전송을 재개한다.
 저장 위치는 `output/sample/Phase2/MC/singlemu-d110-pu200/raw/`이며,
 원격 파일 목록은 `manifest.tsv`, 진행·완료 상태는 `logs/`에 기록된다.
 `logs/exitcode`가 `0`이면 전체 전송이 성공한 것이다.

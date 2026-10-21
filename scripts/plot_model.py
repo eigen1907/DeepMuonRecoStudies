@@ -24,7 +24,7 @@ from study_h5 import iter_scored_chunks
 plt.style.use(hep.style.CMS)
 ROOT = Path(__file__).resolve().parents[1]
 MODEL_REPO = ROOT.parent / "DeepMuonReco"
-TEST = ROOT.parents[1] / ".store/deepmuonreco/dataset/sim-phase2-d110-v001/test.h5"
+TEST = ROOT / "output/dataset/sim-phase2-d110-v001/test.h5"
 PURPLE = "#7625df"
 WP_COLORS = ("#55aaff", "#f49a38", "#e43d42")
 
@@ -73,11 +73,11 @@ def wp_label(target):
     return f"{100 * target:.1f}%"
 
 
-def validation_points(test_h5, run):
+def validation_points(test_h5, predictions):
     """Calibrate the slide's three working points on validation scores."""
     selected = []
     with h5py.File(test_h5.with_name("val.h5")) as data, \
-            h5py.File(run / "predictions/val.h5") as prediction:
+            h5py.File(predictions / "val.h5") as prediction:
         scores = prediction["score"]
         if len(scores) != len(data["track_is_good_track"]):
             raise ValueError("Predictions cover only part of val.h5")
@@ -99,25 +99,27 @@ def ensure_predictions(model, test_h5):
     model = model.resolve()
     checkpoint = model if model.is_file() else model / "checkpoints/best.pt"
     run = checkpoint.parents[1]
+    predictions = ROOT / "output/predictions" / run.parent.name / run.name
     for split, source in (("val", test_h5.with_name("val.h5")), ("test", test_h5)):
-        output = run / "predictions" / f"{split}.h5"
+        output = predictions / f"{split}.h5"
         ready = False
         if output.exists():
             with h5py.File(output) as scores, h5py.File(source) as data:
-                ready = (scores.attrs.get("source_h5") == str(source.resolve())
-                         and scores.attrs.get("checkpoint") == str(checkpoint.resolve())
+                ready = (Path(scores.attrs.get("source_h5", "")).resolve() == source.resolve()
+                         and Path(scores.attrs.get("checkpoint", "")).resolve() == checkpoint.resolve()
                          and scores.attrs.get("precision") == "float32"
                          and len(scores["score"]) == len(data["track_is_good_track"])
                          and output.stat().st_mtime_ns >= max(
                              source.stat().st_mtime_ns, checkpoint.stat().st_mtime_ns))
         if not ready:
             subprocess.run(
-                [str(MODEL_REPO / ".venv/bin/python"), "scripts/predict.py",
+                [str(MODEL_REPO / ".venv/bin/python"), str(ROOT / "scripts/predict.py"),
                  "-c", str(checkpoint), "-s", split,
-                 f"paths.{split}_file={source.resolve()}", "torch.precision=float32"],
+                 f"paths.{split}_file={source.resolve()}",
+                 f"paths.prediction_dir={predictions}", "torch.precision=float32"],
                 cwd=MODEL_REPO, env={**os.environ, "PYTHONPATH": "src"}, check=True,
             )
-    return run
+    return run, predictions
 
 
 def save(ax, name, output, com):
@@ -259,18 +261,18 @@ def event_plot(events, labels, output, com, sample, phase2):
     save(ax, "event_summary.png", output, com)
 
 
-def plot_run(run, test_h5):
-    score_h5 = run / "predictions/test.h5"
+def plot_run(run, predictions, test_h5):
+    score_h5 = predictions / "test.h5"
     with h5py.File(test_h5) as data, h5py.File(score_h5) as scores:
         if len(data["track_is_good_track"]) != len(scores["score"]):
             raise ValueError("Predictions cover only part of test.h5; run predict.py on the full split")
-    output = ROOT / "plots" / run.name
+    output = ROOT / "output/plots" / run.name
     output.mkdir(parents=True, exist_ok=True)
     phase2 = "phase2" in str(test_h5).lower()
     com = 14.0 if phase2 else 13.6
     sample = r"$\mu^+\mu^- + 200\mathrm{PU}$" if phase2 else r"$\mu^+\mu^- + $ Run 3 PU"
 
-    records = validation_points(test_h5, run)
+    records = validation_points(test_h5, predictions)
     h, events, map_label = collect(test_h5, score_h5, records)
     labels = [wp_label(r["tpr_requested"]) for r in records]
     ml_curves = [(label, color, "o")
@@ -321,7 +323,8 @@ def main():
     parser.add_argument("--model", type=Path, required=True)
     args = parser.parse_args()
     test_h5 = args.h5.resolve()
-    plot_run(ensure_predictions(args.model, test_h5), test_h5)
+    run, predictions = ensure_predictions(args.model, test_h5)
+    plot_run(run, predictions, test_h5)
 
 
 if __name__ == "__main__":

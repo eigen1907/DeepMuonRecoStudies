@@ -2,13 +2,8 @@
 .ipynb_checkpoints/
 docs/
 
-# Local logs
-logs/*
-!logs/.gitkeep
-
-# Local plots
-plots/*
-!plots/.gitkeep
+# Study datasets, models, predictions and figures
+output/
 
 # Large analysis files
 *.root

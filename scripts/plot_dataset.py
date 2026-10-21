@@ -20,8 +20,9 @@ from plot_style import color_scale
 
 
 plt.style.use(hep.style.CMS)
-STORE = Path(__file__).resolve().parents[3] / ".store/deepmuonreco/dataset"
-OUTPUT = Path(__file__).resolve().parents[1] / "plots"
+ROOT = Path(__file__).resolve().parents[1]
+DATASET = ROOT / "output/dataset"
+OUTPUT = ROOT / "output/plots"
 PRIMITIVES = {
     "dt": "dt_seg_pos_x", "csc": "csc_seg_pos_x", "gem_seg": "gem_seg_pos_x",
     "rpc": "rpc_hit_pos_x", "gem_hit": "gem_hit_pos_x",
@@ -173,7 +174,7 @@ def save_sample(name, counts, maps, truth, output_dir):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--h5", type=Path,
-                        default=STORE / "sim-phase2-d110-v001/test.h5")
+                        default=DATASET / "sim-phase2-d110-v001/test.h5")
     args = parser.parse_args()
     output = OUTPUT / "dataset"
     output.mkdir(parents=True, exist_ok=True)

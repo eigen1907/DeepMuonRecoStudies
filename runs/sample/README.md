@@ -49,6 +49,18 @@ Run3 Data 데이터셋도 MC와 같은 train 150,000 / val 49,000 / test 50,000
 Phase2 MC는 DIGI-RAW 파일 목록을 한 번 지정하고, ReReco가 모두 끝난 뒤
 ntuple을 제출한다.
 
+비교 테스트용 원본 파일 하나는 아래 명령으로 받는다.
+
+```bash
+bash runs/sample/download_phase2.sh
+```
+
+기본 저장 위치는 `~/workspace/.eos/deepmuonreco/phase2/reco/`다.
+CMSSW의 `xrdcp`로 `.part` 파일에 받고 크기·checksum·ROOT 이벤트 수를 확인한 뒤 교체한다.
+원본은 파일당 약 51.5 GB의 `GEN-SIM-DIGI-RAW-MINIAOD`이며 offline RECO는 별도로 수행한다.
+이 폴더의 EOS 파일 크기 제한은 60 GB로 설정했다.
+기존 `gfal-copy`를 쓰면 기본 30분 timeout 대신 `-t 14400 -T 14400 -K ADLER32`를 지정한다.
+
 ```bash
 bash runs/sample/phase2_mc.sh rereco /path/to/digiraw-files.txt
 bash runs/sample/phase2_mc.sh ntuple

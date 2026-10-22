@@ -34,6 +34,7 @@ bash runs/plot/plot_phase2_models.sh
 `val.h5`는 입력 `test.h5` 옆에서 찾으며 필요한 점수는 자동 추론한다.
 전체 H5를 chunk로 읽고 PNG마다 Axes 하나를 사용한다.
 효율·거부율 오차막대는 68.3% Clopper–Pearson 구간이다.
+`eff_threshold.png`는 score threshold에 따른 TrackerMuon 효율과 background 거부율을 표시한다.
 
 ## 학습
 

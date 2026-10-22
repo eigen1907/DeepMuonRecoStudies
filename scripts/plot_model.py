@@ -27,6 +27,7 @@ MODEL_REPO = ROOT.parent / "DeepMuonReco"
 TEST = ROOT / "output/dataset/sim-phase2-d110-v001/test.h5"
 PURPLE = "#7625df"
 WP_COLORS = ("#55aaff", "#f49a38", "#e43d42")
+THRESHOLDS = np.linspace(0, 1, 101, dtype=np.float32)
 
 
 def collect(data_h5, score_h5, records):
@@ -60,6 +61,8 @@ def collect(data_h5, score_h5, records):
         for name, mask in (("signal", target), ("background", ~target)):
             h["roc", name] += np.histogram(score[mask], np.linspace(0, 1, 10_001))[0]
             h["score", name] += np.histogram(score[mask], np.linspace(0, 1, 21))[0]
+            values = np.sort(score[mask])
+            h["threshold", name] += len(values) - np.searchsorted(values, THRESHOLDS, side="right")
             for label, cut in ml.items():
                 h["pass", name, label] += int(np.count_nonzero(mask & cut))
         events["tracks"].append(lengths)
@@ -200,6 +203,29 @@ def binomial_rate(num, den, complement):
     return valid, n / d, ratio_uncertainty(n, d, uncertainty_type="efficiency")
 
 
+def threshold_plot(h, records, output, com, sample):
+    _, ax = plt.subplots(figsize=(10, 8))
+    for base, label, color, invert in (
+        ("signal", "TrackerMuon efficiency", "#e43d42", False),
+        ("background", "Background rejection", "#55aaff", True),
+    ):
+        num = h["threshold", base]
+        den = np.full_like(num, h["total", base])
+        valid, rate, errors = binomial_rate(num, den, invert)
+        ax.plot(THRESHOLDS[valid], rate, color=color, lw=2, label=label)
+        ax.fill_between(THRESHOLDS[valid], rate - errors[0], rate + errors[1],
+                        color=color, alpha=0.2)
+    working_point = records[-1]
+    ax.axvline(working_point["threshold"], color="0.5", ls=":", lw=1.5,
+               label=f"Val. {wp_label(working_point['tpr_requested'])}: "
+                     f"threshold = {working_point['threshold']:.3f}")
+    ax.set(xlim=(0, 1), ylim=(0, 1.02), xlabel="Score threshold",
+           ylabel="Efficiency / Rejection")
+    ax.legend(loc="lower left", title=sample, fontsize=16, frameon=True, framealpha=1)
+    ax.grid(alpha=0.15)
+    save(ax, "eff_threshold.png", output, com)
+
+
 def pt_plot(h, base, curves, xmax, ylabel, invert, output, name, com, ymin=0):
     edges = np.linspace(0, xmax, 21)
     centres = (edges[1:] + edges[:-1]) / 2
@@ -280,6 +306,7 @@ def plot_run(run, predictions, test_h5):
 
     auc = roc_plots(h, labels, output, com, sample)
     score_plot(h, output, com, sample)
+    threshold_plot(h, records, output, com, sample)
     for xmax, suffix in ((100, "full"), (10, "low")):
         pt_plot(h, "signal", ml_curves, xmax, "Efficiency", False,
                 output, f"eff_pt_{suffix}.png", com, ymin=0.8)
